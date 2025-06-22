@@ -2,6 +2,7 @@ import java.awt.*;
 import javax.swing.*;
 import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 class Okno {
     public static void main(String[] args) {
@@ -54,8 +55,26 @@ class Panel extends JPanel {
     private int MAX_SPEED = 4;
     private int howMuchBall = 500;
     private boolean resizing = false; // Flag for resizing status
+    private boolean aliasing = true;
+    private boolean sweepAndPrune = true;
+
+    public boolean isAliasing() {
+        return aliasing;
+    }
+
+    public void setAliasing(boolean aliasing) {
+        this.aliasing = aliasing;
+    }
 
     private boolean simpleCollisions = true;
+
+    public boolean isSweepAndPrune() {
+        return sweepAndPrune;
+    }
+
+    public void setSweepAndPrune(boolean sweepAndPrune) {
+        this.sweepAndPrune = sweepAndPrune;
+    }
 
     boolean settingsOpened = false;
     JFrame settingsFrame;
@@ -93,6 +112,11 @@ class Panel extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         // Draw each ball on the panel, dynamically adjusting based on the panel size
+
+        Graphics2D g2d = (Graphics2D) g;
+
+        if(aliasing) g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
         for (Kula k : listaKul) {
             g.setColor(k.color);
             g.drawOval(k.x, k.y, k.size, k.size);
@@ -113,7 +137,77 @@ class Panel extends JPanel {
         g.drawString(Integer.toString(listaKul.size()),40,40);
     }*/
 
+    public void sweepAndPruneColl() {
+        // Step 1: Sort balls by their minimum x position (x)
+        listaKul.sort(Comparator.comparingInt(k -> k.x));
 
+        // Step 2: Sweep through the list and compare only overlapping intervals
+        for (int i = 0; i < listaKul.size(); i++) {
+            Kula a = listaKul.get(i);
+            int aMinX = a.x;
+            int aMaxX = a.x + a.size;
+
+            for (int j = i + 1; j < listaKul.size(); j++) {
+                Kula b = listaKul.get(j);
+                int bMinX = b.x;
+
+                // If b starts after a ends, no collision possible, break
+                if (bMinX > aMaxX) break;
+
+                // Otherwise, their x-ranges overlap, check full collision
+                if (a != b) {
+                    // Check circular collision (same as in handleCollision)
+                    int axCenter = a.x + a.size / 2;
+                    int ayCenter = a.y + a.size / 2;
+                    int bxCenter = b.x + b.size / 2;
+                    int byCenter = b.y + b.size / 2;
+
+                    double dx = axCenter - bxCenter;
+                    double dy = ayCenter - byCenter;
+                    double distance = Math.sqrt(dx * dx + dy * dy);
+                    double rsum = a.size / 2.0 + b.size / 2.0;
+
+                    if (distance <= rsum) {
+                        // Either use a.handleCollision(...) or inline your logic
+                        // To avoid infinite recursion, inline a lightweight version here
+
+                        double overlap = rsum - distance;
+                        Vector2 offset = new Vector2(dx, dy);
+                        offset.normalise();
+                        offset.scale(overlap);
+
+                        a.x += (int)(offset.x / 2);
+                        a.y += (int)(offset.y / 2);
+                        b.x -= (int)(offset.x / 2);
+                        b.y -= (int)(offset.y / 2);
+
+                        // Simple collision: swap velocities
+                        if (simpleCollisions) {
+                            int tempX = a.xspeed, tempY = a.yspeed;
+                            a.xspeed = b.xspeed;
+                            a.yspeed = b.yspeed;
+                            b.xspeed = tempX;
+                            b.yspeed = tempY;
+                        } else {
+                            // Elastic collision
+                            int aSize = a.size, bSize = b.size;
+                            int aXSpeed = a.xspeed, aYSpeed = a.yspeed;
+                            int bXSpeed = b.xspeed, bYSpeed = b.yspeed;
+
+                            a.xspeed = (int)(((aSize - bSize) * aXSpeed + 2 * bSize * bXSpeed) / (aSize + bSize));
+                            a.yspeed = (int)(((aSize - bSize) * aYSpeed + 2 * bSize * bYSpeed) / (aSize + bSize));
+
+                            b.xspeed = (int)(((bSize - aSize) * bXSpeed + 2 * aSize * aXSpeed) / (aSize + bSize));
+                            b.yspeed = (int)(((bSize - aSize) * bYSpeed + 2 * aSize * aYSpeed) / (aSize + bSize));
+                        }
+
+                        a.collisionCount++;
+                        b.collisionCount++;
+                    }
+                }
+            }
+        }
+    }
 
     private class Event implements MouseListener, ActionListener, KeyListener
     {
@@ -142,6 +236,7 @@ class Panel extends JPanel {
             deltatime = (currentTime - lastTime) / 1_000_000_000.0; // Convert nanoseconds to seconds
             lastTime = currentTime;
 
+            if(sweepAndPrune) sweepAndPruneColl();
             for (int i = 0; i < listaKul.size(); i++) {
                 listaKul.get(i).update(i, deltatime); // Pass delta time to the update method
             }
@@ -240,26 +335,8 @@ class Panel extends JPanel {
             while(yspeed == 0) yspeed = (int) (Math.random() * MAX_SPEED * 2 - MAX_SPEED);
         }
 
-        public void update(int indeks, double deltatime)
+        public void bruteForceColl(int indeks)
         {
-            x += (int)(xspeed * deltatime * 100);
-            y += (int)(yspeed * deltatime * 100);
-            //y += (int)(gravity * deltatime * 100);
-
-            if (x <= 0 || x + size >= getWidth()) {
-                if (x <= 0) x = 0;
-                else x = getWidth() - size;
-                xspeed = -xspeed;
-
-                collisionCount++;
-            }
-            if (y <= 0 || y + size >= getHeight()) {
-                if(y <= 0) y = 0;
-                else y = getHeight() - size;
-                yspeed = -yspeed;
-
-                collisionCount++;
-            }
 
             for(int i = indeks+1; i < listaKul.size() ; i++)
             {
@@ -343,6 +420,31 @@ class Panel extends JPanel {
 
                 }
             }
+        }
+
+        public void update(int indeks, double deltatime)
+        {
+            x += (int)(xspeed * deltatime * 100);
+            y += (int)(yspeed * deltatime * 100);
+            //y += (int)(gravity * deltatime * 100);
+
+            if (x <= 0 || x + size >= getWidth()) {
+                if (x <= 0) x = 0;
+                else x = getWidth() - size;
+                xspeed = -xspeed;
+
+                collisionCount++;
+            }
+            if (y <= 0 || y + size >= getHeight()) {
+                if(y <= 0) y = 0;
+                else y = getHeight() - size;
+                yspeed = -yspeed;
+
+                collisionCount++;
+            }
+
+            if(!sweepAndPrune) bruteForceColl(indeks);
+
 
             collisionCount -= DECAY_RATE;
             if (collisionCount < 0) collisionCount = 0;
@@ -380,6 +482,13 @@ class Panel extends JPanel {
 class Vector2
 {
     public double x,y;
+
+    public Vector2(double x, double y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public Vector2() {}
 
     void normalise()
     {

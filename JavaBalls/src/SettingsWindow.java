@@ -1,10 +1,8 @@
-import javax.sound.sampled.Line;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
-import java.beans.PropertyChangeListener;
 
 class SettingsWindow {
 
@@ -45,6 +43,8 @@ class SettingsPanel extends JPanel
     private JSlider speedSlider;
     private JSlider quantitySlider;
     private RangeSliderPanel rangeSlider;
+    private JCheckBox sweepAndPruneCheckBox; // Checkbox for toggle
+    private JCheckBox aliasingCheckBox;
 
     public SettingsPanel(Panel mainPanel)
     {
@@ -144,6 +144,36 @@ class SettingsPanel extends JPanel
 
         add(rangeSlider);
 
+
+        // Checkbox for sweepAndPrune
+        sweepAndPruneCheckBox = new JCheckBox("Optimised collision detection (Sweep and Prune)");
+        sweepAndPruneCheckBox.setBackground(Color.BLACK);
+        sweepAndPruneCheckBox.setForeground(Color.WHITE);
+        sweepAndPruneCheckBox.setFocusable(false);
+        sweepAndPruneCheckBox.setSelected(true);
+
+        sweepAndPruneCheckBox.addActionListener(e -> {
+            boolean selected = sweepAndPruneCheckBox.isSelected();
+            mainPanel.setSweepAndPrune(selected);
+            //System.out.println("Sweep and Prune mode: " + selected);
+        });
+
+        add(sweepAndPruneCheckBox);
+
+
+        // Checkbox for aliasing
+        aliasingCheckBox = new JCheckBox("Aliasing");
+        aliasingCheckBox.setBackground(Color.BLACK);
+        aliasingCheckBox.setForeground(Color.WHITE);
+        aliasingCheckBox.setFocusable(false);
+        aliasingCheckBox.setSelected(true);
+
+        aliasingCheckBox.addActionListener(e -> {
+            boolean selected = aliasingCheckBox.isSelected();
+            mainPanel.setAliasing(selected);
+        });
+
+        add(aliasingCheckBox);
     }
 
     private class Event implements MouseListener, ActionListener, KeyListener {
