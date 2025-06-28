@@ -36,5 +36,5 @@ A **simple elastic collision simulation** written in Java.
 
 ---
 
-> *A lightweight physics experiment and visualization tool.*
+> *This program started as a **college project** that I’ve since **heavily modified and expanded**.*
 
