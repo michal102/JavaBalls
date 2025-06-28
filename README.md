@@ -3,7 +3,7 @@ a simple elastic collision program
 
 ![image of my balls](images/main_balls_crop.png)
 
-Balls change color based on density (shifting towards red when the density is high) and value based on collision amount.
+Balls change color based on density (shifting towards red when the density is high) and brightness based on collision amount.
 
 Program also has a settings menu implemented, where you can change properties of balls and methods used to calculate collisions.
 
