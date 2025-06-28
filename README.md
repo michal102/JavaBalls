@@ -17,6 +17,6 @@ Program also has a settings menu implemented, where you can change properties of
 
 R - resets/clears balls
 
-esc - open/close settings menu
+Esc - open/close settings menu
 
-space - open settings menu/change window focus
+Space - open settings menu/change window focus
