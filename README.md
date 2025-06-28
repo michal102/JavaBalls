@@ -15,8 +15,8 @@ Program also has a settings menu implemented, where you can change properties of
 --------
 ## key shortcuts
 
-R - resets/clears balls
+<code>R</code> - resets/clears balls
 
-Esc - open/close settings menu
+<code>Esc</code> - open/close settings menu
 
-Space - open settings menu/change window focus
+<code>Space</code> - open settings menu/change window focus
