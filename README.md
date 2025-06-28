@@ -1,22 +1,40 @@
 # JavaBalls
-a simple elastic collision program
 
-![image of my balls](images/main_balls_crop.png)
-
-Balls change color based on density (shifting towards red when the density is high) and brightness based on collision amount.
-
-Program also has a settings menu implemented, where you can change properties of balls and methods used to calculate collisions.
+A **simple elastic collision simulation** written in Java.
 
 <p align="center">
-  <img src="images/settings1.png" alt="my balls have settings :o"/>
-  <img src="images/settings2.png" alt="my balls have settings again? :v"/>
+  <img src="images/main_balls_crop.png" alt="Elastic collision balls preview" />
 </p>
 
---------
-## key shortcuts
+---
 
-<code>R</code> - resets/clears balls
+## How It Works
 
-<code>Esc</code> - open/close settings menu
+- Balls **change color** based on **density**  
+  → Higher density = shifts toward **red**
+  
+- Balls **brighten** with more **collisions**
 
-<code>Space</code> - open settings menu/change window focus
+- A built-in **settings menu** allows customization of:
+  - Ball properties (e.g., size, speed, density)
+  - Collision calculation methods
+
+<p align="center">
+  <img src="images/settings1.png" alt="Settings 1" /><br>
+  <img src="images/settings2.png" alt="Settings 2" />
+</p>
+
+---
+
+## Key Shortcuts
+
+| Key        | Action                              |
+|------------|-------------------------------------|
+| `R`        | Reset / clear all balls             |
+| `Esc`      | Open or close settings menu         |
+| `Space`    | Toggle settings / change window focus |
+
+---
+
+> *A lightweight physics experiment and visualization tool.*
+
