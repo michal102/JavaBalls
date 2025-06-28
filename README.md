@@ -7,11 +7,13 @@ Balls change color based on density (shifting towards red when the density is hi
 
 Program also has a settings menu implemented, where you can change properties of balls and methods used to calculate collisions.
 
-![my balls have settings :o](images/settings1.png)\
-![my balls have settings again? :v](images/settings2.png)
+<p align="center">
+  <img src="images/settings1.png" alt="my balls have settings :o"/>
+  <img src="images/settings2.png" alt="my balls have settings again? :v"/>
+</p>
 
 --------
-key shortcuts
+## key shortcuts
 
 R - resets/clears balls
 
