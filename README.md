@@ -20,8 +20,13 @@ A **simple elastic collision simulation** written in Java.
   - Collision calculation methods
 
 <p align="center">
-  <img src="images/settings1.png" alt="Settings 1" /><br>
-  <img src="images/settings2.png" alt="Settings 2" />
+  <img src="images/newsettings1.png" alt="Settings 1" /><br>
+  <img src="images/newsettings2.png" alt="Settings 2" />
+</p>
+
+<p align="center">
+  <img src="images/newsettings3.png" alt="Settings 1" /><br>
+  <img src="images/newsettings4.png" alt="Settings 2" />
 </p>
 
 ---
