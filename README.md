@@ -25,8 +25,8 @@ A **simple elastic collision simulation** written in Java.
 </p>
 
 <p align="center">
-  <img src="images/newsettings3.png" alt="Settings 1" /><br>
-  <img src="images/newsettings4.png" alt="Settings 2" />
+  <img src="images/newsettings3.png" alt="Settings 3" /><br>
+  <img src="images/newsettings4.png" alt="Settings 4" />
 </p>
 
 ---
