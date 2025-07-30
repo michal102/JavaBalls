@@ -16,7 +16,7 @@ A **simple elastic collision simulation** written in Java.
 - Balls **brighten** with more **collisions**
 
 - Balls **emit sounds** upon collision  
-  → Sound properties depend on ball **size, speed, density and number of collisions**  
+  → Sound properties depend on ball **size, speed, density, number of collisions and position in window**  
   → **High-density** collisions are **muffled**
 
 - A built-in **settings menu** allows customization of:
