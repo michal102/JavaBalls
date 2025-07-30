@@ -4,9 +4,19 @@ import javax.swing.event.ChangeListener;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 class SettingsWindow {
+
+    private JTabbedPane tabbedPane;
+
+    public void switchToTab(int index) {
+        tabbedPane.setSelectedIndex(index);
+    }
 
     public SettingsWindow(Panel panel) {
         // Settings frame
@@ -22,14 +32,91 @@ class SettingsWindow {
             }
         });
 
-        SettingsPanel settingsPanel = new SettingsPanel(panel);
         panel.settingsFrame = settingsFrame;
 
-        // Outer panel with padding
+// Create the tabbed pane
+        tabbedPane = new JTabbedPane();
+        tabbedPane.setFocusable(false);
+        tabbedPane.setBackground(Color.BLACK);
+        tabbedPane.setForeground(Color.WHITE);
+
+// Add the general settings tab
+        SettingsPanel settingsPanel = new SettingsPanel(panel, this);
+        tabbedPane.addTab("General", settingsPanel);
+
+// Add the sound settings tab
+        SoundSettingsPanel soundSettingsPanel = new SoundSettingsPanel(panel, this);
+        tabbedPane.addTab("Sound", soundSettingsPanel);
+
+// Outer panel with padding
         JPanel outerPanel = new JPanel(new BorderLayout());
-        outerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 1)); // top, left, bottom, right
-        outerPanel.setBackground(Color.BLACK); // Match the SettingsPanel background
-        outerPanel.add(settingsPanel, BorderLayout.CENTER);
+        outerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 1));
+        outerPanel.setBackground(Color.BLACK);
+        outerPanel.add(tabbedPane, BorderLayout.CENTER);
+
+        tabbedPane.setUI(new javax.swing.plaf.basic.BasicTabbedPaneUI() {
+            private final Color selectedColor = new Color(30, 30, 30);
+            private final Color unselectedColor = new Color(10, 10, 10);
+            private final Color highlight = new Color(255, 255, 255);
+
+            @Override
+            protected void installDefaults() {
+                super.installDefaults();
+                tabAreaInsets.left = 10;
+            }
+
+            @Override
+            protected void paintTabBackground(Graphics g, int tabPlacement, int tabIndex,
+                                              int x, int y, int w, int h, boolean isSelected) {
+                g.setColor(isSelected ? selectedColor : unselectedColor);
+                g.fillRoundRect(x, y + 5, w, h - 5, 10, 10);
+            }
+
+            @Override
+            protected void paintContentBorder(Graphics g, int tabPlacement,
+                                              int selectedIndex) {
+                // Remove default border
+            }
+
+            @Override
+            protected void paintTabArea(Graphics g, int tabPlacement, int selectedIndex) {
+                super.paintTabArea(g, tabPlacement, selectedIndex);
+
+                // Draw a white line under the tabs
+                g.setColor(Color.WHITE);
+                g.fillRect(0, getTabAreaHeight(tabPlacement, runCount, maxTabHeight), tabPane.getWidth(), 2);
+            }
+
+            private int getTabAreaHeight(int tabPlacement, int runCount, int maxTabHeight) {
+                return calculateTabAreaHeight(tabPlacement, runCount, maxTabHeight);
+            }
+
+            @Override
+            protected void paintFocusIndicator(Graphics g, int tabPlacement,
+                                               Rectangle[] rects, int tabIndex,
+                                               Rectangle iconRect, Rectangle textRect, boolean isSelected) {
+                // No focus ring
+            }
+
+            @Override
+            protected void paintText(Graphics g, int tabPlacement, Font font,
+                                     FontMetrics metrics, int tabIndex,
+                                     String title, Rectangle textRect, boolean isSelected) {
+                g.setFont(font);
+                g.setColor(Color.WHITE);
+                g.drawString(title, textRect.x, textRect.y + metrics.getAscent());
+            }
+
+            @Override
+            protected int calculateTabHeight(int tabPlacement, int tabIndex, int fontHeight) {
+                return super.calculateTabHeight(tabPlacement, tabIndex, fontHeight) + 6;
+            }
+
+            @Override
+            protected int calculateTabWidth(int tabPlacement, int tabIndex, FontMetrics metrics) {
+                return super.calculateTabWidth(tabPlacement, tabIndex, metrics) + 20;
+            }
+        });
 
         // Scroll pane setup
         JScrollPane scrollPane = new JScrollPane(outerPanel);
@@ -102,6 +189,7 @@ class SettingsPanel extends JPanel
 {
     private boolean resizing = false; // Flag for resizing status
     private final Panel mainPanel;
+    private final SettingsWindow settingsWindow;
 
     private JSlider speedSlider;
     private JSlider quantitySlider;
@@ -113,9 +201,10 @@ class SettingsPanel extends JPanel
     private JCheckBox overlapCollisionCheckBox;
 
 
-    public SettingsPanel(Panel mainPanel)
+    public SettingsPanel(Panel mainPanel, SettingsWindow settingsWindow)
     {
         this.mainPanel = mainPanel;
+        this.settingsWindow = settingsWindow;
 
         //this.setLayout(new FlowLayout());
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -138,6 +227,14 @@ class SettingsPanel extends JPanel
                 repaint(); // Repaint the panel after resizing
             }
         });
+
+        JLabel title = new JLabel("Simulation Settings");
+        title.setForeground(Color.WHITE);
+        title.setFont(new Font("Arial", Font.BOLD, 16));
+        //title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        add(title);
+
+        add(Box.createVerticalStrut(15));
 
         // Speed Slider
         speedSlider = new JSlider(2, 22, mainPanel.getMAX_SPEED());
@@ -341,6 +438,7 @@ class SettingsPanel extends JPanel
 
         add(strokeSlider);
 
+        add(Box.createVerticalStrut(300));
 
     }
 
@@ -403,9 +501,229 @@ class SettingsPanel extends JPanel
             {
                SwingUtilities.getWindowAncestor(mainPanel).toFront();
             }
+            else if(keyCode == KeyEvent.VK_2)
+            {
+                settingsWindow.switchToTab(1);
+            }
         }
 
         @Override
         public void keyReleased(KeyEvent e) {}
     }
+}
+
+
+class SoundSettingsPanel extends JPanel {
+    private final Panel mainPanel;
+    private final SettingsWindow settingsWindow;
+
+    public SoundSettingsPanel(Panel mainPanel, SettingsWindow settingsWindow) {
+        this.mainPanel = mainPanel;
+        this.settingsWindow = settingsWindow;
+
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        setBackground(Color.BLACK);
+        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        setFocusable(true);
+        requestFocusInWindow();
+
+        addMouseListener(new SoundSettingsPanel.Event());
+        addKeyListener(new SoundSettingsPanel.Event());
+
+        JLabel title = new JLabel("Sound Settings");
+        title.setForeground(Color.WHITE);
+        title.setFont(new Font("Arial", Font.BOLD, 16));
+        add(leftAligned(title));
+
+        add(Box.createVerticalStrut(15));
+
+        // Volume Slider
+        JLabel volumeLabel = new JLabel("Volume:");
+        volumeLabel.setForeground(Color.WHITE);
+        add(leftAligned(volumeLabel));
+
+        int floatFactor = 100;
+        int sliderMin = 0;
+        int sliderMax = 100;
+        int sliderInit = (int) (SoundManager.getVolume() * floatFactor);
+
+        JSlider volumeSlider = new JSlider(sliderMin, sliderMax, sliderInit);
+        volumeSlider.setBackground(Color.BLACK);
+        volumeSlider.setForeground(Color.WHITE);
+        volumeSlider.setMajorTickSpacing(20);
+        volumeSlider.setMinorTickSpacing(5);
+        volumeSlider.setPaintTicks(true);
+        volumeSlider.setPaintLabels(true);
+        volumeSlider.setPreferredSize(new Dimension(400, 80));
+        volumeSlider.setFocusable(false);
+
+        volumeSlider.addChangeListener(e -> {
+            float volume = volumeSlider.getValue() / (float) floatFactor;
+            SoundManager.setVolume(volume);
+        });
+
+        add(volumeSlider);
+
+        // Mute checkbox
+        JCheckBox muteCheckBox = new JCheckBox("Mute");
+        muteCheckBox.setBackground(Color.BLACK);
+        muteCheckBox.setForeground(Color.WHITE);
+        muteCheckBox.setSelected(SoundManager.isMuted());
+        muteCheckBox.setFocusable(false);
+        muteCheckBox.addActionListener(e -> {
+            boolean muted = muteCheckBox.isSelected();
+            SoundManager.setMuted(muted);
+        });
+
+        add(Box.createVerticalStrut(15));
+        add(leftAligned(muteCheckBox));
+        add(Box.createVerticalStrut(20));
+
+        JLabel perSoundLabel = new JLabel("Individual Sound Settings:");
+        perSoundLabel.setForeground(Color.WHITE);
+        perSoundLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        add(leftAligned(perSoundLabel));
+
+        add(Box.createVerticalStrut(10));
+
+        Map<String, SoundManager.SoundTypeConfig> soundConfigs = SoundManager.getSoundTypeConfigs();
+        int configFloatFactor = 100;
+
+        List<Map.Entry<String, SoundManager.SoundTypeConfig>> sortedEntries = new ArrayList<>(soundConfigs.entrySet());
+        sortedEntries.sort(Comparator.comparingInt(entry -> (int) entry.getValue().sizeThreshold));
+
+        for (Map.Entry<String, SoundManager.SoundTypeConfig> entry : sortedEntries) {
+            String soundName = entry.getKey();
+            SoundManager.SoundTypeConfig config = entry.getValue();
+
+            JPanel soundPanel = new JPanel();
+            soundPanel.setLayout(new BoxLayout(soundPanel, BoxLayout.Y_AXIS));
+            soundPanel.setBackground(Color.BLACK);
+            soundPanel.setBorder(BorderFactory.createTitledBorder(
+                    BorderFactory.createLineBorder(Color.GRAY),
+                    soundName,
+                    0,
+                    0,
+                    new Font("Arial", Font.BOLD, 12),
+                    Color.WHITE
+            ));
+
+            JLabel volumeLbl = new JLabel("Volume:");
+            volumeLbl.setForeground(Color.WHITE);
+            soundPanel.add(leftAligned(volumeLbl));
+
+            JSlider volSlider = new JSlider(0, 100, (int) (config.volumeMultiplier * configFloatFactor));
+            volSlider.setBackground(Color.BLACK);
+            volSlider.setForeground(Color.WHITE);
+            volSlider.setPaintTicks(true);
+            volSlider.setPaintLabels(true);
+            volSlider.setMajorTickSpacing(50);
+            volSlider.setMinorTickSpacing(10);
+            volSlider.setFocusable(false);
+
+            soundPanel.add(volSlider);
+
+            volSlider.addChangeListener(e -> {
+                float newVolume = volSlider.getValue() / (float) configFloatFactor;
+                SoundManager.setSoundTypeConfig(soundName, new SoundManager.SoundTypeConfig(newVolume, config.sizeThreshold));
+            });
+
+            add(soundPanel);
+            add(Box.createVerticalStrut(10));
+        }
+
+        add(Box.createVerticalStrut(20));
+
+        RangeSliderPanel soundRangeSlider = new RangeSliderPanel(
+                (int) SoundManager.getSoundTypeConfig("click").sizeThreshold,
+                (int) SoundManager.getSoundTypeConfig("tap").sizeThreshold
+        );
+
+        soundRangeSlider.addRangeSliderChangeListener((lower, upper) -> {
+            SoundManager.setSoundTypeConfig("click", new SoundManager.SoundTypeConfig(
+                    SoundManager.getSoundTypeConfig("click").volumeMultiplier,
+                    lower
+            ));
+            SoundManager.setSoundTypeConfig("tap", new SoundManager.SoundTypeConfig(
+                    SoundManager.getSoundTypeConfig("tap").volumeMultiplier,
+                    upper
+            ));
+        });
+        soundRangeSlider.setFocusable(false);
+
+        JLabel rangeLabel = new JLabel("Shared Size Range (Click → Tap):");
+        rangeLabel.setForeground(Color.WHITE);
+        rangeLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        add(leftAligned(rangeLabel));
+
+        soundRangeSlider.setZoneLabels("click", "tap");
+        soundRangeSlider.setZoneColors(
+                new Color(100, 200, 255, 180),
+                new Color(255, 180, 180, 180),
+                new Color(180, 255, 224, 180)
+        );
+        soundRangeSlider.setSliderWidth(500);
+        add(soundRangeSlider);
+
+        add(Box.createVerticalStrut(100));
+    }
+
+    private JPanel leftAligned(JComponent c) {
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        p.setBackground(Color.BLACK);
+        p.add(c);
+        return p;
+    }
+
+    private class Event implements MouseListener, ActionListener, KeyListener {
+        @Override
+        public void mouseClicked(MouseEvent e) {
+        }
+        @Override
+        public void mousePressed(MouseEvent e)
+        {
+            requestFocusInWindow();
+        }
+        @Override
+        public void mouseReleased(MouseEvent e) {
+        }
+        @Override
+        public void mouseEntered(MouseEvent e) {
+        }
+        @Override
+        public void mouseExited(MouseEvent e) {
+        }
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+        }
+
+        @Override
+        public void keyTyped(KeyEvent e) {}
+
+        @Override
+        public void keyPressed(KeyEvent e)
+        {
+            int keyCode = e.getKeyCode();
+            if (keyCode == KeyEvent.VK_ESCAPE)
+            {
+                mainPanel.setSettingsOpened(false);
+                SwingUtilities.getWindowAncestor(SoundSettingsPanel.this).setVisible(false);
+                SwingUtilities.getWindowAncestor(SoundSettingsPanel.this).dispose();
+            }
+            else if(keyCode == KeyEvent.VK_SPACE)
+            {
+                SwingUtilities.getWindowAncestor(mainPanel).toFront();
+            }
+            else if(keyCode == KeyEvent.VK_1)
+            {
+                settingsWindow.switchToTab(0);
+            }
+        }
+
+        @Override
+        public void keyReleased(KeyEvent e) {}
+    }
+
 }

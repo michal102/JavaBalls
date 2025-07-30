@@ -1,3 +1,5 @@
+import kuusisto.tinysound.TinySound;
+
 import java.awt.*;
 import javax.swing.*;
 import java.awt.event.*;
@@ -8,7 +10,17 @@ class Okno {
     public static void main(String[] args) {
 
         JFrame frame = new JFrame("BALLS!");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                TinySound.shutdown(); // Stop audio engine
+                frame.dispose();
+                System.exit(0);
+            }
+        });
+
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("*Windows*".equals(info.getName())) {
@@ -53,7 +65,7 @@ class Panel extends JPanel {
     int MAX_SIZE = 35;
     int MIN_SIZE = 20;
     private int MAX_SPEED = 4;
-    private int howMuchBall = 800;
+    private int howMuchBall = 500;
     private boolean resizing = false; // Flag for resizing status
     private boolean aliasing = true;
     private boolean sweepAndPrune = true;
@@ -61,6 +73,9 @@ class Panel extends JPanel {
     float strokeWidth = 2f;
     boolean roundSpeedToInt = false;
     boolean overlapCollisions = false;
+
+    private boolean sweepDirectionLeftToRight = true;
+
 
     public boolean isOverlapCollisions() {
         return overlapCollisions;
@@ -273,74 +288,96 @@ class Panel extends JPanel {
         // Step 1: Sort balls by their minimum x position (x)
         listaKul.sort(Comparator.comparingDouble(k -> k.x));
 
-        // Step 2: Sweep through the list and compare only overlapping intervals
-        for (int i = 0; i < listaKul.size(); i++) {
-            Kula a = listaKul.get(i);
-            double aMinX = a.x;
-            double aMaxX = a.x + a.size;
+        // Step 2: Sweep in alternating directions
+        if (sweepDirectionLeftToRight) {
+            for (int i = 0; i < listaKul.size(); i++) {
+                Kula a = listaKul.get(i);
+                double aMaxX = a.x + a.size;
 
-            for (int j = i + 1; j < listaKul.size(); j++) {
-                Kula b = listaKul.get(j);
-                double bMinX = b.x;
+                for (int j = i + 1; j < listaKul.size(); j++) {
+                    Kula b = listaKul.get(j);
+                    if (b.x > aMaxX) break;
 
-                // If b starts after a ends, no collision possible, break
-                if (bMinX > aMaxX) break;
+                    handlePotentialCollision(a, b);
+                }
+            }
+        } else {
+            for (int i = listaKul.size() - 1; i >= 0; i--) {
+                Kula a = listaKul.get(i);
+                double aMaxX = a.x + a.size;
 
-                // Otherwise, their x-ranges overlap, check full collision
-                if (a != b) {
-                    // Check circular collision (same as in handleCollision)
-                    double axCenter = a.x + a.size / 2;
-                    double ayCenter = a.y + a.size / 2;
-                    double bxCenter = b.x + b.size / 2;
-                    double byCenter = b.y + b.size / 2;
+                for (int j = i - 1; j >= 0; j--) {
+                    Kula b = listaKul.get(j);
+                    if (a.x > b.x + b.size) break;
 
-                    double dx = axCenter - bxCenter;
-                    double dy = ayCenter - byCenter;
-                    double distance = Math.sqrt(dx * dx + dy * dy);
-                    double rsum = a.size / 2.0 + b.size / 2.0;
-
-                    if (distance <= rsum) {
-                        // Either use a.handleCollision(...) or inline your logic
-                        // To avoid infinite recursion, inline a lightweight version here
-
-                        double overlap = rsum - distance;
-                        Vector2 offset = new Vector2(dx, dy);
-                        offset.normalise();
-                        offset.scale(overlap);
-
-                        a.x += (int)(offset.x / 2);
-                        a.y += (int)(offset.y / 2);
-                        b.x -= (int)(offset.x / 2);
-                        b.y -= (int)(offset.y / 2);
-
-                        // Simple collision: swap velocities
-                        if (!elasticCollisions) {
-                            double tempX = a.xspeed, tempY = a.yspeed;
-                            a.xspeed = b.xspeed;
-                            a.yspeed = b.yspeed;
-                            b.xspeed = tempX;
-                            b.yspeed = tempY;
-                        } else {
-//                            // Elastic collision
-//                            double aSize = a.size, bSize = b.size;
-//                            double aXSpeed = a.xspeed, aYSpeed = a.yspeed;
-//                            double bXSpeed = b.xspeed, bYSpeed = b.yspeed;
-//
-//                            a.xspeed = (int)(((aSize - bSize) * aXSpeed + 2 * bSize * bXSpeed) / (aSize + bSize));
-//                            a.yspeed = (int)(((aSize - bSize) * aYSpeed + 2 * bSize * bYSpeed) / (aSize + bSize));
-//
-//                            b.xspeed = (int)(((bSize - aSize) * bXSpeed + 2 * aSize * aXSpeed) / (aSize + bSize));
-//                            b.yspeed = (int)(((bSize - aSize) * bYSpeed + 2 * aSize * aYSpeed) / (aSize + bSize));
-                            resolveElasticCollision(a, b);
-                        }
-
-                        a.collisionCount++;
-                        b.collisionCount++;
-                    }
+                    handlePotentialCollision(a, b);
                 }
             }
         }
+
+        // Toggle direction for next frame
+        sweepDirectionLeftToRight = !sweepDirectionLeftToRight;
     }
+
+
+    // Helper method to handle actual collision check and resolution
+    private void handlePotentialCollision(Kula a, Kula b) {
+        if (a == b) return;
+
+        double axCenter = a.x + a.size / 2;
+        double ayCenter = a.y + a.size / 2;
+        double bxCenter = b.x + b.size / 2;
+        double byCenter = b.y + b.size / 2;
+
+        double dx = axCenter - bxCenter;
+        double dy = ayCenter - byCenter;
+        double distance = Math.sqrt(dx * dx + dy * dy);
+        double rsum = a.size / 2.0 + b.size / 2.0;
+
+        if (distance <= rsum && distance > 0.00001) {
+            if (distance <= rsum) {
+                double overlap = rsum - distance;
+                Vector2 offset = new Vector2(dx, dy);
+                offset.normalise();
+                offset.scale(overlap);
+
+                a.x += offset.x / 2.0;
+                a.y += offset.y / 2.0;
+                b.x -= offset.x / 2.0;
+                b.y -= offset.y / 2.0;
+
+                if (!elasticCollisions) {
+                    double tempX = a.xspeed, tempY = a.yspeed;
+                    a.xspeed = b.xspeed;
+                    a.yspeed = b.yspeed;
+                    b.xspeed = tempX;
+                    b.yspeed = tempY;
+                } else {
+                    resolveElasticCollision(a, b);
+                }
+
+                a.collisionCount++;
+                b.collisionCount++;
+
+                //oldSoundManager.playCollisionSound(a, b);
+                SoundManager.playCollisionSound(a, b, getWidth());
+            }
+        }
+        else if (distance == 0) {
+            // Balls are exactly on top of each other: separate arbitrarily
+            double overlap = rsum;
+            Vector2 offset = new Vector2(Math.random() - 0.5, Math.random() - 0.5);
+            offset.normalise();
+            offset.scale(overlap);
+
+            a.x += offset.x / 2.0;
+            a.y += offset.y / 2.0;
+            b.x -= offset.x / 2.0;
+            b.y -= offset.y / 2.0;
+        }
+
+    }
+
 
     private class Event implements MouseListener, ActionListener, KeyListener
     {
@@ -373,6 +410,8 @@ class Panel extends JPanel {
             for (int i = 0; i < listaKul.size(); i++) {
                 listaKul.get(i).update(i, deltatime); // Pass delta time to the update method
             }
+
+            SoundManager.resetSoundFrameCounter();
             repaint();
         }
 
@@ -442,10 +481,17 @@ class Panel extends JPanel {
         this.howMuchBall = howMuchBall;
     }
 
-    private class Kula {
+    public class Kula {
         public double x, y, size, xspeed = 0, yspeed = 0;
         public Color color;
         private double MAX_SPEED = 4;
+
+        public long lastSoundTime = 0;
+
+
+        public int getCollisionCount() {
+            return collisionCount;
+        }
 
         private int collisionCount = 0; // Track the number of collisions
         private final int MAX_COLLISIONS = 20; // Max number of collisions to fully turn red
@@ -456,6 +502,15 @@ class Panel extends JPanel {
         private final float MIN_HUE = 0.1f; // Minimum hue (to avoid no color)
 
         private double gravity = 9.81;
+
+        public int getDensity() {
+            return density;
+        }
+
+        private int density = 0;
+
+        public double getSpeed() { return Math.sqrt(xspeed * xspeed + yspeed * yspeed); }
+
 
         public Kula(int x, int y, int size, int maxSpeed) {
             this.x = x;
@@ -513,6 +568,8 @@ class Panel extends JPanel {
                         //tranfer vectors
                         xspeed = listaKul.get(i).xspeed; yspeed = listaKul.get(i).yspeed;
                         listaKul.get(i).xspeed = pomXspeed; listaKul.get(i).yspeed = pomYspeed;
+
+                        SoundManager.playCollisionSound(this, listaKul.get(i), getWidth());
                     }
                     else
                     {
@@ -545,6 +602,7 @@ class Panel extends JPanel {
 //                        xspeed = (int)newXSpeed;
 //                        yspeed = (int)newYSpeed;
                         resolveElasticCollision(this,listaKul.get(i));
+                        SoundManager.playCollisionSound(this, listaKul.get(i), getWidth());
                     }
 
 
@@ -578,6 +636,9 @@ class Panel extends JPanel {
                 xspeed = -xspeed;
 
                 collisionCount++;
+
+                //oldSoundManager.playWallSound(this);
+                SoundManager.playWallSound(this, getWidth());
             }
             if (y <= 0 || y + size >= getHeight()) {
                 if(y <= 0) y = 0;
@@ -585,6 +646,9 @@ class Panel extends JPanel {
                 yspeed = -yspeed;
 
                 collisionCount++;
+
+                //oldSoundManager.playWallSound(this);
+                SoundManager.playWallSound(this, getWidth());
             }
 
             if(!sweepAndPrune) bruteForceColl(indeks);
@@ -596,7 +660,7 @@ class Panel extends JPanel {
             else if(collisionCount > MAX_COLLISIONS) collisionCount = MAX_COLLISIONS;
 
             // Calculate density (how many balls are within a certain distance)
-            int density = 0;
+            density = 0;
             for (Kula kula : listaKul) {
                 if (kula != this) {
                     double distance = Math.sqrt(Math.pow(this.x - kula.x, 2) + Math.pow(this.y - kula.y, 2));

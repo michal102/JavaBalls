@@ -4,6 +4,14 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 class RangeSliderPanel extends JPanel {
+
+    private String leftLabel = null;
+    private String rightLabel = null;
+    private Color leftColor = null;
+    private Color middleColor = null;
+    private Color rightColor = null;
+
+
     private int minValue = 1;
     private int maxValue = 100;
     private int lowerValue = 1;
@@ -45,6 +53,26 @@ class RangeSliderPanel extends JPanel {
                 handleMouseDrag(e);
             }
         });
+    }
+
+    public void setZoneLabels(String left, String right) {
+        this.leftLabel = left;
+        this.rightLabel = right;
+    }
+
+    public void setZoneColors(Color left, Color middle, Color right) {
+        this.leftColor = left;
+        this.middleColor = middle;
+        this.rightColor = right;
+    }
+
+    public void setSliderWidth(int width) {
+        Dimension newSize = new Dimension(width, getPreferredSize().height);
+        setPreferredSize(newSize);
+        setMaximumSize(newSize);
+        setMinimumSize(newSize);
+        revalidate(); // Notify parent layout manager
+        repaint();
     }
 
     public void addRangeSliderChangeListener(RangeSliderChangeListener listener) {
@@ -127,9 +155,31 @@ class RangeSliderPanel extends JPanel {
         g2d.setColor(Color.GRAY);
         g2d.fillRect(thumbRadius, getHeight() / 2 - sliderHeight / 2, getWidth() - 2 * thumbRadius, sliderHeight);
 
-        // Optional: Draw range between thumbs
-        g2d.setColor(new Color(255, 255, 255, 200));
-        g2d.fillRect(mapValueToX(lowerValue), getHeight() / 2 - sliderHeight / 2, mapValueToX(upperValue) - mapValueToX(lowerValue), sliderHeight);
+        int y = getHeight() / 2 - sliderHeight / 2;
+        int leftX = thumbRadius;
+        int lowerX = mapValueToX(lowerValue);
+        int upperX = mapValueToX(upperValue);
+        int rightX = getWidth() - thumbRadius;
+
+// Left zone
+        if (leftColor != null && lowerX > leftX) {
+            g2d.setColor(leftColor);
+            g2d.fillRect(leftX, y, lowerX - leftX, sliderHeight);
+        }
+
+// Middle zone
+        Color midColor = middleColor != null ? middleColor : new Color(255, 255, 255, 200);
+        if (upperX > lowerX) {
+            g2d.setColor(midColor);
+            g2d.fillRect(lowerX, y, upperX - lowerX, sliderHeight);
+        }
+
+// Right zone
+        if (rightColor != null && rightX > upperX) {
+            g2d.setColor(rightColor);
+            g2d.fillRect(upperX, y, rightX - upperX, sliderHeight);
+        }
+
 
         // Draw the lower and upper thumbs
         g2d.setColor(Color.BLUE);
@@ -141,6 +191,19 @@ class RangeSliderPanel extends JPanel {
         g2d.setColor(Color.WHITE);
         g2d.drawString("Min Size: " + lowerValue, 10, 20);
         g2d.drawString("Max Size: " + upperValue, getWidth() - 70, 20);
+
+
+        //labels
+
+        if (leftLabel != null) {
+            g2d.setColor(Color.WHITE);
+            g2d.drawString(leftLabel, lowerX - 15, getHeight() / 2 + 25);
+        }
+        if (rightLabel != null) {
+            g2d.setColor(Color.WHITE);
+            g2d.drawString(rightLabel, upperX - 10, getHeight() / 2 + 25);
+        }
+
     }
 
     public int getLowerValue() {
